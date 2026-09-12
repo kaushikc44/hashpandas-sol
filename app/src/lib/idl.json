@@ -1,0 +1,1306 @@
+{
+  "address": "97c5ZbrrVVJa8jY1vVHX1tpKtZXrUBp7YyfpfhKnxpmK",
+  "metadata": {
+    "name": "hashpandas",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Proof-of-work NFT collection on Solana"
+  },
+  "instructions": [
+    {
+      "name": "burn",
+      "discriminator": [
+        116,
+        110,
+        29,
+        56,
+        107,
+        219,
+        42,
+        93
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "panda",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  110,
+                  100,
+                  97
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "panda.asset",
+                "account": "Panda"
+              }
+            ]
+          }
+        },
+        {
+          "name": "asset",
+          "docs": [
+            "deserializing the asset, and again by mpl-core itself checking that",
+            "`owner` is a valid authority (owner or delegate) for it."
+          ],
+          "writable": true
+        },
+        {
+          "name": "collection",
+          "writable": true
+        },
+        {
+          "name": "panda_mint",
+          "writable": true
+        },
+        {
+          "name": "reward_token_account",
+          "docs": [
+            "The burner's $PANDA token account. Must already exist -- this",
+            "instruction mints the burn reward into it but doesn't create it."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "panda_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "mpl_core_program",
+          "address": "CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "claim",
+      "discriminator": [
+        62,
+        198,
+        214,
+        193,
+        213,
+        159,
+        108,
+        210
+      ],
+      "accounts": [
+        {
+          "name": "claimant",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "panda",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  110,
+                  100,
+                  97
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "panda.asset",
+                "account": "Panda"
+              }
+            ]
+          }
+        },
+        {
+          "name": "asset",
+          "docs": [
+            "The Metaplex Core asset itself. Its CURRENT owner, not whoever",
+            "minted it, is who is allowed to claim -- the rent follows the panda",
+            "through a sale.",
+            "verified by deserializing its data below, not by this constraint."
+          ]
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "crank_buyback",
+      "discriminator": [
+        37,
+        215,
+        1,
+        139,
+        147,
+        5,
+        99,
+        198
+      ],
+      "accounts": [
+        {
+          "name": "keeper",
+          "docs": [
+            "Anyone. That's the point -- this is a permissionless keeper call."
+          ],
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasury",
+          "writable": true
+        },
+        {
+          "name": "amm_program",
+          "docs": [
+            "`initialize` and never touched again."
+          ]
+        },
+        {
+          "name": "buyback_dest_token_account",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "CrankBuybackArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "initialize",
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "authority",
+          "docs": [
+            "Project admin. Kept distinct from `payer` so a hot wallet can cover",
+            "fees while a colder key retains admin control."
+          ],
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "docs": [
+            "PDA lamport vault for unclaimed holder rent. Deliberately never",
+            "`init`-ed: an account with no data needs no rent-exempt allocation",
+            "step, only transfers in (mint) and `invoke_signed` transfers out",
+            "(claim)."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasury",
+          "docs": [
+            "PDA lamport account for the \"hook\" share: buyback crank + project cut."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "panda_mint",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  110,
+                  100,
+                  97,
+                  95,
+                  109,
+                  105,
+                  110,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "collection",
+          "docs": [
+            "The Metaplex Core collection every panda gets minted into. A fresh",
+            "keypair, not a PDA: `CreateCollectionV1` requires the collection",
+            "account to sign its own creation."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "mpl_core_program",
+          "address": "CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d"
+        },
+        {
+          "name": "buyback_dest_token_account",
+          "docs": [
+            "Config-owned $PANDA token account the buyback crank (step 9) buys",
+            "into. Created here so the crank never needs an `init` branch."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "config"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "panda_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "InitializeArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "mint",
+      "discriminator": [
+        51,
+        57,
+        225,
+        47,
+        182,
+        146,
+        137,
+        166
+      ],
+      "accounts": [
+        {
+          "name": "miner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "treasury",
+          "writable": true
+        },
+        {
+          "name": "collection",
+          "writable": true
+        },
+        {
+          "name": "asset",
+          "docs": [
+            "Fresh keypair for the new Core asset. Not a PDA: `CreateV1` requires",
+            "the asset account to sign its own creation."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "panda",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  110,
+                  100,
+                  97
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "asset"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mpl_core_program",
+          "address": "CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "MintArgs"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Config",
+      "discriminator": [
+        155,
+        12,
+        170,
+        224,
+        30,
+        250,
+        204,
+        130
+      ]
+    },
+    {
+      "name": "Panda",
+      "discriminator": [
+        116,
+        69,
+        222,
+        245,
+        2,
+        109,
+        175,
+        216
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "EpochOverflow",
+      "msg": "epoch exceeds MAX_EPOCH"
+    },
+    {
+      "code": 6001,
+      "name": "NoLivingHolders",
+      "msg": "no living eligible holders"
+    },
+    {
+      "code": 6002,
+      "name": "AnchorInFuture",
+      "msg": "anchor slot is not in the past relative to the current slot"
+    },
+    {
+      "code": 6003,
+      "name": "AnchorTooOld",
+      "msg": "anchor slot is outside the recent window"
+    },
+    {
+      "code": 6004,
+      "name": "SysvarReadFailed",
+      "msg": "failed to read the SlotHashes sysvar"
+    },
+    {
+      "code": 6005,
+      "name": "AnchorNotFound",
+      "msg": "anchor slot not found in SlotHashes sysvar"
+    },
+    {
+      "code": 6006,
+      "name": "AnchorHashMismatch",
+      "msg": "anchor hash does not match the on-chain slot hash"
+    },
+    {
+      "code": 6007,
+      "name": "StepNotMultipleOfFive",
+      "msg": "step_lamports must be a positive multiple of 5, so rent_step has no truncation"
+    },
+    {
+      "code": 6008,
+      "name": "CreatorPercentagesMustSumTo100",
+      "msg": "royalty creator percentages must sum to exactly 100"
+    },
+    {
+      "code": 6009,
+      "name": "SlotAlreadyMinted",
+      "msg": "a panda has already been minted in this slot"
+    },
+    {
+      "code": 6010,
+      "name": "DifficultyNotMet",
+      "msg": "submitted hash does not meet the required difficulty"
+    },
+    {
+      "code": 6011,
+      "name": "PandaBurned",
+      "msg": "this panda has been burned and can no longer claim rent"
+    },
+    {
+      "code": 6012,
+      "name": "AssetDeserializeFailed",
+      "msg": "failed to deserialize the Metaplex Core asset account"
+    },
+    {
+      "code": 6013,
+      "name": "NotAssetOwner",
+      "msg": "caller does not currently own this asset"
+    },
+    {
+      "code": 6014,
+      "name": "NothingToClaim",
+      "msg": "nothing is currently claimable"
+    },
+    {
+      "code": 6015,
+      "name": "AlreadyBurned",
+      "msg": "this panda has already been burned"
+    },
+    {
+      "code": 6016,
+      "name": "NoLaterPanda",
+      "msg": "at least one later panda must exist before this one can be burned"
+    },
+    {
+      "code": 6017,
+      "name": "TooEarly",
+      "msg": "a panda must exist for at least 10 minutes before it can be burned"
+    },
+    {
+      "code": 6018,
+      "name": "CrankAlreadyRanThisSlot",
+      "msg": "the buyback crank has already run this slot"
+    },
+    {
+      "code": 6019,
+      "name": "CrankSpendCapExceeded",
+      "msg": "spend exceeds the crank's per-call spend cap"
+    },
+    {
+      "code": 6020,
+      "name": "InvalidReferencePrice",
+      "msg": "reference price must be a positive fraction"
+    },
+    {
+      "code": 6021,
+      "name": "TreasurySpendMismatch",
+      "msg": "treasury lamport delta did not match the declared spend"
+    },
+    {
+      "code": 6022,
+      "name": "PriceImpactExceeded",
+      "msg": "tokens received fell short of the price-impact floor"
+    },
+    {
+      "code": 6023,
+      "name": "Overflow",
+      "msg": "arithmetic overflow"
+    }
+  ],
+  "types": [
+    {
+      "name": "Config",
+      "docs": [
+        "Singleton. PDA seeds: [b\"config\"].",
+        "",
+        "Everything that makes a mint valid and everything that prices it lives in",
+        "this one account, so a mint touches exactly one writable global. That is",
+        "also the bottleneck: Solana serialises writes to this account, so mints are",
+        "effectively one-at-a-time. That is fine -- it IS the \"one panda per slot\"",
+        "rule, enforced for free by the runtime rather than by a check."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "treasury",
+            "type": "pubkey"
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "collection",
+            "type": "pubkey"
+          },
+          {
+            "name": "panda_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "step_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "epoch0_flat_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "supply",
+            "type": "u64"
+          },
+          {
+            "name": "epoch",
+            "type": "u8"
+          },
+          {
+            "name": "acc",
+            "docs": [
+              "Cumulative lamports owed per LIVING eligible panda, ACC_SCALE-scaled."
+            ],
+            "type": "u128"
+          },
+          {
+            "name": "epoch_acc_snapshot",
+            "docs": [
+              "snapshot[e] = `acc` at the moment epoch e opened.",
+              "A panda minted in epoch E uses snapshot[E + 1] as its rent cursor, which",
+              "is what implements \"your own epoch does not pay you\".",
+              "Fixed array, not a Vec: reallocating a hot global account mid-run is a",
+              "failure mode you do not want."
+            ],
+            "type": {
+              "array": [
+                "u128",
+                26
+              ]
+            }
+          },
+          {
+            "name": "eligible_living",
+            "docs": [
+              "Eligible pandas still alive, and eligible pandas that have been burned.",
+              "INVARIANT: eligible_living + eligible_burned == epoch_start_supply(epoch)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "eligible_burned",
+            "type": "u64"
+          },
+          {
+            "name": "pending_burns",
+            "docs": [
+              "Burns of pandas whose epoch has not closed yet, indexed by mint epoch.",
+              "Folded into the two counters above at the epoch rollover."
+            ],
+            "type": {
+              "array": [
+                "u32",
+                26
+              ]
+            }
+          },
+          {
+            "name": "last_winning_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "base_difficulty",
+            "type": "u8"
+          },
+          {
+            "name": "last_mint_slot",
+            "type": "u64"
+          },
+          {
+            "name": "last_mint_unix",
+            "type": "i64"
+          },
+          {
+            "name": "retarget_window_start_unix",
+            "type": "i64"
+          },
+          {
+            "name": "mints_since_retarget",
+            "type": "u8"
+          },
+          {
+            "name": "streak",
+            "type": "u8"
+          },
+          {
+            "name": "streak_last_cool_unix",
+            "type": "i64"
+          },
+          {
+            "name": "lifetime_to_holders",
+            "type": "u64"
+          },
+          {
+            "name": "lifetime_to_hook",
+            "type": "u64"
+          },
+          {
+            "name": "lifetime_claimed",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "vault_bump",
+            "type": "u8"
+          },
+          {
+            "name": "treasury_bump",
+            "docs": [
+              "Needed so the treasury crank (step 9) can `invoke_signed` a spend out",
+              "of the treasury PDA the same way claims sign out of the vault PDA."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "buyback_amm_program",
+            "docs": [
+              "The ONLY program the buyback crank may CPI into. This is a keeper, not",
+              "a protocol guarantee: whatever this program does with the forwarded",
+              "instruction data is trusted at the \"which AMM to point this at\" level",
+              "once, at initialize. See docs/TOKENOMICS.md 5.3."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "buyback_dest_token_account",
+            "docs": [
+              "Config-owned $PANDA token account the crank buys into."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "crank_spend_cap_lamports",
+            "docs": [
+              "Hard ceiling on lamports spent by a single crank call."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "max_price_impact_bps",
+            "docs": [
+              "Max allowed shortfall (in bps) of tokens received vs. the caller's",
+              "declared reference price -- NOT a real oracle price, see crank.rs."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "last_crank_slot",
+            "type": "u64"
+          },
+          {
+            "name": "lifetime_buyback_spent_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "lifetime_buyback_tokens_bought",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CrankBuybackArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "spend_lamports",
+            "docs": [
+              "Lamports to spend this call. Must be <= `config.crank_spend_cap_lamports`."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "reference_price_num",
+            "docs": [
+              "Caller-declared lamports-per-token price, as a fraction",
+              "`reference_price_num / reference_price_denom`. NOT a verified oracle",
+              "price -- see the module docs."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "reference_price_denom",
+            "type": "u64"
+          },
+          {
+            "name": "swap_ix_data",
+            "docs": [
+              "Raw instruction data forwarded verbatim to `buyback_amm_program`.",
+              "This program does not interpret it; it only checks the net effect."
+            ],
+            "type": "bytes"
+          }
+        ]
+      }
+    },
+    {
+      "name": "InitializeArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "step_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "epoch0_flat_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "base_difficulty",
+            "type": "u8"
+          },
+          {
+            "name": "collection_name",
+            "type": "string"
+          },
+          {
+            "name": "collection_uri",
+            "type": "string"
+          },
+          {
+            "name": "royalty_bps",
+            "type": "u16"
+          },
+          {
+            "name": "royalty_creators",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "RoyaltyCreatorArg"
+                }
+              }
+            }
+          },
+          {
+            "name": "royalty_rule_set",
+            "type": {
+              "defined": {
+                "name": "RuleSetArg"
+              }
+            }
+          },
+          {
+            "name": "buyback_amm_program",
+            "docs": [
+              "The only program the buyback crank (step 9) may ever CPI into."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "crank_spend_cap_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "max_price_impact_bps",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MintArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "nonce",
+            "type": "u64"
+          },
+          {
+            "name": "anchor_slot",
+            "type": "u64"
+          },
+          {
+            "name": "anchor_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "uri",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Panda",
+      "docs": [
+        "One per panda. PDA seeds: [b\"panda\", asset.key().as_ref()].",
+        "",
+        "Deliberately NOT stored in the Core asset's Attributes plugin: rent",
+        "accounting is hot, mutable, and must be writable by this program without",
+        "a CPI round-trip on every claim.",
+        "",
+        "The rent claim follows the PANDA, not the address that mined it -- this",
+        "account is keyed by the asset, so selling the panda transfers the unclaimed",
+        "rent with it automatically. Claim authority is checked against the Core",
+        "asset's current owner at claim time."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "asset",
+            "type": "pubkey"
+          },
+          {
+            "name": "index",
+            "type": "u64"
+          },
+          {
+            "name": "mint_epoch",
+            "type": "u8"
+          },
+          {
+            "name": "minted_unix",
+            "type": "i64"
+          },
+          {
+            "name": "seed",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "work_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "claimed_scaled",
+            "docs": [
+              "Rent already withdrawn, ACC_SCALE-scaled. Kept scaled so that repeated",
+              "partial claims cannot lose sub-lamport remainders."
+            ],
+            "type": "u128"
+          },
+          {
+            "name": "burned",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RoyaltyCreatorArg",
+      "docs": [
+        "A `Vec<Creator>` won't fit as an Anchor instruction arg without pulling",
+        "mpl-core's own (borsh1-based) serde traits across the crate boundary, so",
+        "the args use plain types local to this program and get translated into",
+        "`mpl_core::types::*` inside the handler."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "address",
+            "type": "pubkey"
+          },
+          {
+            "name": "percentage",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RuleSetArg",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "None"
+          },
+          {
+            "name": "ProgramAllowList",
+            "fields": [
+              {
+                "vec": "pubkey"
+              }
+            ]
+          },
+          {
+            "name": "ProgramDenyList",
+            "fields": [
+              {
+                "vec": "pubkey"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

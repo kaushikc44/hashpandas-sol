@@ -1,0 +1,10 @@
+node_modules/
+target/
+.next/
+*.tsbuildinfo
+.DS_Store
+*.log
+scripts/node_modules/
+app/node_modules/
+miner/node_modules/
+renderer/node_modules/

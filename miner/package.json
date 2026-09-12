@@ -1,0 +1,19 @@
+{
+  "name": "@hashpandas/miner",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "WebGPU/CPU proof-of-work miner for hashpandas-sol",
+  "scripts": {
+    "test": "node --experimental-strip-types --test src/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@solana/web3.js": "^1.99.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.2",
+    "@webgpu/types": "^0.1.44",
+    "typescript": "^5.7.0"
+  }
+}

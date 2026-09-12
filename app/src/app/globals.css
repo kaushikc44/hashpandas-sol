@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0a0a0a;
+  --panel: #0f1210;
+  --foreground: #d6ffe0;
+  --dim: #6b8a76;
+  --green: #39ff88;
+  --green-dim: #1c8f52;
+  --cyan: #4de8ff;
+  --border: #1e2b22;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-mono-app);
+  --font-mono: var(--font-mono-app);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-mono-app), ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+}
+
+.panel-green {
+  border-color: var(--green-dim);
+}
+
+.panel-cyan {
+  border-color: #17505c;
+}
+
+.label {
+  color: var(--dim);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hr-dashed {
+  border-top: 1px dashed var(--border);
+}
+
+.btn-primary {
+  background: var(--green);
+  color: #06170c;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.btn-primary:hover {
+  background: #5dffa0;
+}
+
+.btn-primary:disabled {
+  background: var(--green-dim);
+  color: #0a1e12;
+  opacity: 0.6;
+}
+
+.bar-track {
+  background: #10231a;
+  border: 1px solid var(--border);
+}
+
+.bar-fill-green {
+  background: linear-gradient(90deg, var(--green-dim), var(--green));
+}
+
+.bar-fill-cyan {
+  background: linear-gradient(90deg, #14606e, var(--cyan));
+}
+
+/* wallet-adapter-react-ui overrides to match the terminal theme */
+.wallet-adapter-button {
+  background-color: var(--green) !important;
+  color: #06170c !important;
+  font-family: inherit !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 2px !important;
+  height: auto !important;
+  padding: 0.5rem 1rem !important;
+}
+
+.wallet-adapter-button:not([disabled]):hover {
+  background-color: #5dffa0 !important;
+}
+
+.wallet-adapter-modal-wrapper {
+  background: var(--panel) !important;
+  border: 1px solid var(--green-dim);
+  font-family: inherit;
+}
+
+.wallet-adapter-modal-button-close {
+  background: var(--border) !important;
+}

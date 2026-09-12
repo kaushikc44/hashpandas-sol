@@ -1,0 +1,40 @@
+[package]
+name = "hashpandas"
+version = "0.1.0"
+description = "Proof-of-work NFT collection on Solana"
+edition.workspace = true
+rust-version.workspace = true
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "hashpandas"
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
+anchor-debug = []
+custom-heap = []
+custom-panic = []
+
+
+[dependencies]
+anchor-lang = "1.1.2"
+anchor-spl = { version = "1.2.0", features = ["mint", "token"] }
+mpl-core = { version = "0.12.1", default-features = false, features = ["borsh-v1"] }
+solana-keccak-hasher = { version = "3.1.0", features = ["sha3"] }
+solana-sysvar = { version = "3.1.1", features = ["bincode", "bytemuck"] }
+
+[dev-dependencies]
+litesvm = "0.10.0"
+solana-message = "3.0.1"
+solana-transaction = "3.0.2"
+solana-signer = "3.0.0"
+solana-keypair = "3.0.1"
+solana-hash = "4.6.0"
+
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
