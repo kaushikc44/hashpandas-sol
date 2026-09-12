@@ -1,0 +1,11 @@
+{
+  "name": "Hashpandas",
+  "symbol": "PANDA",
+  "description": "A proof-of-work NFT collection on Solana. Pandas are not sold — the only way one comes into existence is a keccak256 hash below the current target, paid for at the current epoch's entry price. Every earlier panda earns rent from every mint that comes after it.",
+  "image": "https://raw.githubusercontent.com/kaushikc44/hashpandas-sol/main/metadata/collection.png",
+  "external_url": "https://github.com/kaushikc44/hashpandas-sol",
+  "properties": {
+    "category": "image",
+    "creators": []
+  }
+}
