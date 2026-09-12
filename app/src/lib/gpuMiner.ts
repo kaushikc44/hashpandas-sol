@@ -45,13 +45,43 @@ export function isWebGpuAvailable(): boolean {
   return typeof navigator !== "undefined" && "gpu" in navigator;
 }
 
+export interface GpuAdapterInfo {
+  vendor: string;
+  architecture: string;
+  device: string;
+  description: string;
+}
+
+/** Which physical GPU WebGPU actually picked -- the on-page proof that
+ * "GPU" mode isn't secretly falling back to something else. Safe to call
+ * before starting a mining session. */
+export async function getGpuAdapterInfo(): Promise<GpuAdapterInfo | null> {
+  if (!isWebGpuAvailable()) return null;
+  const adapter = await navigator.gpu.requestAdapter();
+  if (!adapter) return null;
+  // `adapter.info` is the current spec; `requestAdapterInfo()` is the
+  // older API some browsers still only expose.
+  const info =
+    "info" in adapter
+      ? (adapter as GPUAdapter & { info: GPUAdapterInfo }).info
+      : await (adapter as unknown as { requestAdapterInfo(): Promise<GpuAdapterInfo> }).requestAdapterInfo();
+  return {
+    vendor: info.vendor || "unknown",
+    architecture: info.architecture || "unknown",
+    device: info.device || "unknown",
+    description: info.description || "",
+  };
+}
+
 export class GpuMiner {
   private readonly device: GPUDevice;
   private readonly pipeline: GPUComputePipeline;
+  readonly adapterInfo: GpuAdapterInfo | null;
 
-  private constructor(device: GPUDevice, pipeline: GPUComputePipeline) {
+  private constructor(device: GPUDevice, pipeline: GPUComputePipeline, adapterInfo: GpuAdapterInfo | null) {
     this.device = device;
     this.pipeline = pipeline;
+    this.adapterInfo = adapterInfo;
   }
 
   static async create(): Promise<GpuMiner> {
@@ -61,6 +91,7 @@ export class GpuMiner {
     const adapter = await navigator.gpu.requestAdapter();
     if (!adapter) throw new Error("no WebGPU adapter available");
     const device = await adapter.requestDevice();
+    const adapterInfo = await getGpuAdapterInfo();
 
     const wgslSource = await fetch("/keccak.wgsl").then((r) => r.text());
     const module = device.createShaderModule({ code: wgslSource });
@@ -68,7 +99,7 @@ export class GpuMiner {
       layout: "auto",
       compute: { module, entryPoint: "main" },
     });
-    return new GpuMiner(device, pipeline);
+    return new GpuMiner(device, pipeline, adapterInfo);
   }
 
   async runBatch(params: MinerBatchParams): Promise<MinerBatchResult> {

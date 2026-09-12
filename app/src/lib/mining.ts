@@ -1,5 +1,7 @@
 import { keccak256v, leadingZeroBits } from "./keccak";
-import { GpuMiner, isWebGpuAvailable } from "./gpuMiner";
+import { GpuMiner, isWebGpuAvailable, type GpuAdapterInfo } from "./gpuMiner";
+
+export { isWebGpuAvailable, getGpuAdapterInfo, type GpuAdapterInfo } from "./gpuMiner";
 
 export interface MiningTarget {
   miner: Uint8Array; // 32 bytes
@@ -28,8 +30,6 @@ function u64ToLeBytes(v: bigint): Uint8Array {
 export function hashForNonce(target: MiningTarget, nonce: bigint): Uint8Array {
   return keccak256v([target.miner, u64ToLeBytes(nonce), target.lastWinningHash, target.anchorHash]);
 }
-
-export { isWebGpuAvailable };
 
 export interface MineOptions {
   onProgress?: (hashesTried: bigint) => void;
@@ -78,6 +78,9 @@ export interface GpuMineOptions extends MineOptions {
    * re-check then rejects -- a false positive, dropped per spec, never
    * trusted into a transaction. */
   onDroppedCandidate?: (nonce: bigint, reportedDepth: number) => void;
+  /** Fired once, as soon as the adapter is ready -- which physical GPU
+   * WebGPU actually picked. */
+  onGpuInfo?: (info: GpuAdapterInfo | null) => void;
 }
 
 /** GPU-accelerated search via WebGPU. The GPU only ever reports a depth
@@ -89,6 +92,7 @@ export async function mineOnGpu(
   options: GpuMineOptions = {},
 ): Promise<{ nonce: bigint; hash: Uint8Array }> {
   const miner = await GpuMiner.create();
+  options.onGpuInfo?.(miner.adapterInfo);
   const batchSize = options.batchSize ?? 1 << 16;
   let baseNonce = 0n;
 

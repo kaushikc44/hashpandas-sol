@@ -6,8 +6,15 @@ import { BN } from "@coral-xyz/anchor";
 import { useConnection } from "@solana/wallet-adapter-react";
 import { useHashpandasProgram } from "@/lib/useProgram";
 import { fetchConfig, type ConfigAccount } from "@/lib/config";
-import { fetchRecentAnchor } from "@/lib/slotHashes";
-import { mineInBrowser, mineOnGpu, isWebGpuAvailable, type Attempt } from "@/lib/mining";
+import { fetchRecentAnchor, type AnchorSlot } from "@/lib/slotHashes";
+import {
+  mineOnGpu,
+  isWebGpuAvailable,
+  type Attempt,
+  type MiningTarget,
+  type GpuAdapterInfo,
+} from "@/lib/mining";
+import { mineOnCpuWorkers, maxCpuCores } from "@/lib/cpuWorkers";
 import { leadingZeroBits } from "@/lib/keccak";
 import { renderSeedToCanvas } from "@/lib/render";
 import { MPL_CORE_PROGRAM_ID } from "@/lib/constants";
@@ -27,12 +34,23 @@ const STATUS_STYLE: Record<Phase, string> = {
 
 const MAX_ATTEMPTS_SHOWN = 8;
 
+interface FoundResult {
+  nonce: bigint;
+  hash: Uint8Array;
+  anchor: AnchorSlot;
+  uri: string;
+  asset: Keypair;
+}
+
 export default function MineMint() {
   const { connection } = useConnection();
   const program = useHashpandasProgram();
   const [phase, setPhase] = useState<Phase>("idle");
   const [machine, setMachine] = useState<Machine>("cpu");
   const [gpuAvailable, setGpuAvailable] = useState<boolean | null>(null);
+  const [gpuInfo, setGpuInfo] = useState<GpuAdapterInfo | null>(null);
+  const [cores, setCores] = useState(1);
+  const [maxCores, setMaxCores] = useState(1);
   const [hashesTried, setHashesTried] = useState(0n);
   const [hashRate, setHashRate] = useState(0);
   const [dropped, setDropped] = useState(0);
@@ -45,6 +63,7 @@ export default function MineMint() {
   const abortRef = useRef<AbortController | null>(null);
   const rateRef = useRef<{ t: number; n: bigint } | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const foundResultRef = useRef<FoundResult | null>(null);
 
   useEffect(() => {
     fetchConfig(connection).then(setConfig).catch(() => {});
@@ -52,6 +71,9 @@ export default function MineMint() {
 
   useEffect(() => {
     setGpuAvailable(isWebGpuAvailable());
+    const max = maxCpuCores();
+    setMaxCores(max);
+    setCores(Math.max(1, max - 1));
   }, []);
 
   useEffect(() => {
@@ -61,7 +83,7 @@ export default function MineMint() {
 
   const targetBits = config ? config.baseDifficulty + config.streak : null;
 
-  async function start() {
+  async function mine() {
     if (!program) return;
     setPhase("preparing");
     setMessage("reading program state…");
@@ -71,6 +93,8 @@ export default function MineMint() {
     setHashRate(0);
     setDropped(0);
     setAttempts([]);
+    setGpuInfo(null);
+    foundResultRef.current = null;
     rateRef.current = null;
 
     try {
@@ -80,7 +104,7 @@ export default function MineMint() {
 
       const anchor = await fetchRecentAnchor(connection);
       const bits = cfg.baseDifficulty + cfg.streak;
-      const miningTarget = {
+      const miningTarget: MiningTarget = {
         miner: program.provider.publicKey!.toBytes(),
         lastWinningHash: cfg.lastWinningHash,
         anchorHash: anchor.hash,
@@ -113,8 +137,10 @@ export default function MineMint() {
               onProgress,
               onAttempt,
               onDroppedCandidate: () => setDropped((d) => d + 1),
+              onGpuInfo: setGpuInfo,
             })
-          : await mineInBrowser(miningTarget, {
+          : await mineOnCpuWorkers(miningTarget, {
+              cores,
               signal: controller.signal,
               onProgress,
               onAttempt,
@@ -123,21 +149,44 @@ export default function MineMint() {
       setFoundHash(hash);
       setFoundBits(leadingZeroBits(hash));
 
-      setPhase("submitting");
-      setMessage(`found nonce ${nonce}. submitting mint tx…`);
-
       const asset = Keypair.generate();
+      foundResultRef.current = {
+        nonce,
+        hash,
+        anchor,
+        uri: "https://hashpandas.example/metadata/pending.json",
+        asset,
+      };
+
+      await submit();
+    } catch (err) {
+      setPhase("error");
+      setMessage(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function submit() {
+    if (!program) return;
+    const found = foundResultRef.current;
+    if (!found) return;
+
+    try {
+      setPhase("submitting");
+      setMessage(`found nonce ${found.nonce}. submitting mint tx…`);
+
       const [config_] = configPda();
       const [vault] = vaultPda();
       const [treasury] = treasuryPda();
-      const [panda] = pandaPda(asset.publicKey);
+      const [panda] = pandaPda(found.asset.publicKey);
+      const cfg = config ?? (await fetchConfig(connection));
+      if (!cfg) throw new Error("program is not initialized yet");
 
       const sig = await program.methods
         .mint({
-          nonce: new BN(nonce.toString()),
-          anchorSlot: new BN(anchor.slot.toString()),
-          anchorHash: Array.from(anchor.hash),
-          uri: "https://hashpandas.example/metadata/pending.json",
+          nonce: new BN(found.nonce.toString()),
+          anchorSlot: new BN(found.anchor.slot.toString()),
+          anchorHash: Array.from(found.anchor.hash),
+          uri: found.uri,
         })
         .accountsStrict({
           miner: program.provider.publicKey!,
@@ -145,18 +194,23 @@ export default function MineMint() {
           vault,
           treasury,
           collection: cfg.collection,
-          asset: asset.publicKey,
+          asset: found.asset.publicKey,
           panda,
           mplCoreProgram: MPL_CORE_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
         })
-        .signers([asset])
+        .signers([found.asset])
         .rpc();
 
       setPhase("done");
-      setMintedAsset(asset.publicKey.toBase58());
+      setMintedAsset(found.asset.publicKey.toBase58());
       setMessage(`minted. tx ${sig.slice(0, 12)}…`);
+      foundResultRef.current = null;
     } catch (err) {
+      // Deliberately do NOT clear foundResultRef here -- a rejected or
+      // dropped transaction doesn't invalidate the already-mined nonce.
+      // "Retry mint" resubmits the exact same proof of work instead of
+      // discarding potentially minutes of search.
       setPhase("error");
       setMessage(err instanceof Error ? err.message : String(err));
     }
@@ -169,6 +223,7 @@ export default function MineMint() {
   }
 
   const running = phase === "mining" || phase === "submitting" || phase === "preparing";
+  const canRetryMint = phase === "error" && foundResultRef.current !== null;
   const barPct = targetBits ? Math.min(100, (foundBits / targetBits) * 100) : 0;
 
   return (
@@ -214,7 +269,7 @@ export default function MineMint() {
 
           <div>
             <div className="label mb-1">machine</div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center flex-wrap">
               <MachineButton
                 label="CPU"
                 active={machine === "cpu"}
@@ -232,7 +287,30 @@ export default function MineMint() {
                     : "faster: thousands of hashes in parallel"
                 }
               />
+              {machine === "cpu" && maxCores > 1 && (
+                <div className="flex items-center gap-2 ml-2">
+                  <span className="label">cores</span>
+                  <input
+                    type="range"
+                    min={1}
+                    max={maxCores}
+                    value={cores}
+                    disabled={running}
+                    onChange={(e) => setCores(Number(e.target.value))}
+                    className="w-28 accent-[var(--green)]"
+                  />
+                  <span className="text-xs w-10">
+                    {cores}/{maxCores}
+                  </span>
+                </div>
+              )}
             </div>
+            {machine === "gpu" && gpuInfo && (
+              <p className="text-xs text-[var(--dim)] mt-1">
+                using: {gpuInfo.vendor} {gpuInfo.architecture || gpuInfo.device}
+                {gpuInfo.description ? ` — ${gpuInfo.description}` : ""}
+              </p>
+            )}
             {dropped > 0 && (
               <p className="text-xs text-[var(--dim)] mt-1">
                 {dropped} GPU candidate{dropped === 1 ? "" : "s"} failed CPU re-check and were dropped
@@ -240,13 +318,13 @@ export default function MineMint() {
             )}
           </div>
 
-          <div className="flex gap-2 items-center pt-2">
+          <div className="flex gap-2 items-center pt-2 flex-wrap">
             {!program ? (
               <span className="text-xs text-[var(--dim)]">connect a wallet to mine</span>
             ) : (
               <>
                 <button
-                  onClick={start}
+                  onClick={mine}
                   disabled={running}
                   className="btn-primary px-5 py-2 text-xs rounded-sm disabled:cursor-not-allowed"
                 >
@@ -254,6 +332,14 @@ export default function MineMint() {
                     ? "Mine a panda"
                     : "Mining…"}
                 </button>
+                {canRetryMint && (
+                  <button
+                    onClick={submit}
+                    className="px-4 py-2 text-xs border border-[var(--green)] text-[var(--green)] rounded-sm"
+                  >
+                    Retry mint (same proof)
+                  </button>
+                )}
                 {phase === "mining" && (
                   <button
                     onClick={cancel}
