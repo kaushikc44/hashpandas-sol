@@ -7,13 +7,14 @@ import { useConnection } from "@solana/wallet-adapter-react";
 import { useHashpandasProgram } from "@/lib/useProgram";
 import { fetchConfig, type ConfigAccount } from "@/lib/config";
 import { fetchRecentAnchor } from "@/lib/slotHashes";
-import { mineInBrowser } from "@/lib/mining";
+import { mineInBrowser, mineOnGpu, isWebGpuAvailable, type Attempt } from "@/lib/mining";
 import { leadingZeroBits } from "@/lib/keccak";
 import { renderSeedToCanvas } from "@/lib/render";
 import { MPL_CORE_PROGRAM_ID } from "@/lib/constants";
 import { configPda, pandaPda, treasuryPda, vaultPda } from "@/lib/pda";
 
 type Phase = "idle" | "preparing" | "mining" | "submitting" | "done" | "error";
+type Machine = "cpu" | "gpu";
 
 const STATUS_STYLE: Record<Phase, string> = {
   idle: "text-[var(--dim)] border-[var(--border)]",
@@ -24,17 +25,23 @@ const STATUS_STYLE: Record<Phase, string> = {
   error: "text-red-400 border-red-900",
 };
 
+const MAX_ATTEMPTS_SHOWN = 8;
+
 export default function MineMint() {
   const { connection } = useConnection();
   const program = useHashpandasProgram();
   const [phase, setPhase] = useState<Phase>("idle");
+  const [machine, setMachine] = useState<Machine>("cpu");
+  const [gpuAvailable, setGpuAvailable] = useState<boolean | null>(null);
   const [hashesTried, setHashesTried] = useState(0n);
   const [hashRate, setHashRate] = useState(0);
+  const [dropped, setDropped] = useState(0);
   const [message, setMessage] = useState<string>("");
   const [config, setConfig] = useState<ConfigAccount | null>(null);
   const [foundHash, setFoundHash] = useState<Uint8Array | null>(null);
   const [foundBits, setFoundBits] = useState(0);
   const [mintedAsset, setMintedAsset] = useState<string | null>(null);
+  const [attempts, setAttempts] = useState<Attempt[]>([]);
   const abortRef = useRef<AbortController | null>(null);
   const rateRef = useRef<{ t: number; n: bigint } | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -42,6 +49,10 @@ export default function MineMint() {
   useEffect(() => {
     fetchConfig(connection).then(setConfig).catch(() => {});
   }, [connection]);
+
+  useEffect(() => {
+    setGpuAvailable(isWebGpuAvailable());
+  }, []);
 
   useEffect(() => {
     const ctx = canvasRef.current?.getContext("2d");
@@ -58,6 +69,8 @@ export default function MineMint() {
     setFoundHash(null);
     setHashesTried(0n);
     setHashRate(0);
+    setDropped(0);
+    setAttempts([]);
     rateRef.current = null;
 
     try {
@@ -67,33 +80,45 @@ export default function MineMint() {
 
       const anchor = await fetchRecentAnchor(connection);
       const bits = cfg.baseDifficulty + cfg.streak;
+      const miningTarget = {
+        miner: program.provider.publicKey!.toBytes(),
+        lastWinningHash: cfg.lastWinningHash,
+        anchorHash: anchor.hash,
+        targetBits: bits,
+      };
 
       setPhase("mining");
-      setMessage(`searching for >= ${bits} leading zero bits…`);
+      setMessage(`searching for >= ${bits} leading zero bits on ${machine.toUpperCase()}…`);
       const controller = new AbortController();
       abortRef.current = controller;
 
-      const { nonce, hash } = await mineInBrowser(
-        {
-          miner: program.provider.publicKey!.toBytes(),
-          lastWinningHash: cfg.lastWinningHash,
-          anchorHash: anchor.hash,
-          targetBits: bits,
-        },
-        {
-          signal: controller.signal,
-          onProgress: (n) => {
-            setHashesTried(n);
-            const now = performance.now();
-            if (rateRef.current) {
-              const dt = (now - rateRef.current.t) / 1000;
-              const dn = n - rateRef.current.n;
-              if (dt > 0) setHashRate(Number(dn) / dt);
-            }
-            rateRef.current = { t: now, n };
-          },
-        },
-      );
+      const onProgress = (n: bigint) => {
+        setHashesTried(n);
+        const now = performance.now();
+        if (rateRef.current) {
+          const dt = (now - rateRef.current.t) / 1000;
+          const dn = n - rateRef.current.n;
+          if (dt > 0) setHashRate(Number(dn) / dt);
+        }
+        rateRef.current = { t: now, n };
+      };
+      const onAttempt = (a: Attempt) => {
+        setAttempts((prev) => [a, ...prev].slice(0, MAX_ATTEMPTS_SHOWN));
+      };
+
+      const { nonce, hash } =
+        machine === "gpu"
+          ? await mineOnGpu(miningTarget, {
+              signal: controller.signal,
+              onProgress,
+              onAttempt,
+              onDroppedCandidate: () => setDropped((d) => d + 1),
+            })
+          : await mineInBrowser(miningTarget, {
+              signal: controller.signal,
+              onProgress,
+              onAttempt,
+            });
 
       setFoundHash(hash);
       setFoundBits(leadingZeroBits(hash));
@@ -187,6 +212,34 @@ export default function MineMint() {
             <Stat label="Target" value={targetBits ? `${targetBits} bits` : "—"} />
           </div>
 
+          <div>
+            <div className="label mb-1">machine</div>
+            <div className="flex gap-2">
+              <MachineButton
+                label="CPU"
+                active={machine === "cpu"}
+                disabled={running}
+                onClick={() => setMachine("cpu")}
+              />
+              <MachineButton
+                label="GPU"
+                active={machine === "gpu"}
+                disabled={running || gpuAvailable === false}
+                onClick={() => setMachine("gpu")}
+                hint={
+                  gpuAvailable === false
+                    ? "WebGPU not available in this browser"
+                    : "faster: thousands of hashes in parallel"
+                }
+              />
+            </div>
+            {dropped > 0 && (
+              <p className="text-xs text-[var(--dim)] mt-1">
+                {dropped} GPU candidate{dropped === 1 ? "" : "s"} failed CPU re-check and were dropped
+              </p>
+            )}
+          </div>
+
           <div className="flex gap-2 items-center pt-2">
             {!program ? (
               <span className="text-xs text-[var(--dim)]">connect a wallet to mine</span>
@@ -223,7 +276,51 @@ export default function MineMint() {
           )}
         </div>
       </div>
+
+      {attempts.length > 0 && (
+        <div className="mt-4 pt-4 hr-dashed">
+          <div className="label mb-2">recent attempts</div>
+          <div className="space-y-1 font-mono text-xs">
+            {attempts.map((a) => (
+              <div key={a.nonce.toString()} className="flex gap-3 text-[var(--dim)]">
+                <span className="w-16 shrink-0">#{a.nonce.toString()}</span>
+                <span className="flex-1 truncate">{hex(a.hash)}</span>
+                <span className="w-16 shrink-0 text-right text-[var(--fg)]">{a.bits}b</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+function MachineButton({
+  label,
+  active,
+  disabled,
+  onClick,
+  hint,
+}: {
+  label: string;
+  active: boolean;
+  disabled: boolean;
+  onClick: () => void;
+  hint?: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={hint}
+      className={`label px-3 py-1.5 border rounded-sm disabled:opacity-30 disabled:cursor-not-allowed ${
+        active
+          ? "border-[var(--green)] text-[var(--green)] bg-[var(--border)]"
+          : "border-[var(--border)] text-[var(--dim)]"
+      }`}
+    >
+      {label}
+    </button>
   );
 }
 

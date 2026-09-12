@@ -69,6 +69,10 @@ pub enum HashpandasError {
     #[msg("tokens received fell short of the price-impact floor")]
     PriceImpactExceeded,
 
+    // -- collection metadata update ------------------------------------------
+    #[msg("must provide at least a new name or a new uri")]
+    NothingToUpdate,
+
     // -- shared --------------------------------------------------------------
     #[msg("arithmetic overflow")]
     Overflow,

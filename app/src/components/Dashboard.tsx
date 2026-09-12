@@ -2,14 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { useConnection } from "@solana/wallet-adapter-react";
-import { fetchConfig, entryPriceLamports, type ConfigAccount } from "@/lib/config";
+import {
+  fetchConfig,
+  entryPriceLamports,
+  nextEntryPriceLamports,
+  epochStartSupply,
+  type ConfigAccount,
+} from "@/lib/config";
 
 function lamportsToSol(lamports: bigint): string {
   return (Number(lamports) / 1_000_000_000).toFixed(6);
 }
 
 function nextEpochSupply(epoch: number): bigint {
-  return 8n * ((1n << BigInt(epoch + 1)) - 1n);
+  return epochStartSupply(epoch + 1);
 }
 
 export default function Dashboard() {
@@ -51,7 +57,7 @@ export default function Dashboard() {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
             <Stat label="Supply" value={config.supply.toString()} />
             <Stat label="Epoch" value={config.epoch.toString()} />
-            <Stat label="Entry price" value={`${lamportsToSol(entryPriceLamports(config))} SOL`} />
+            <Stat label="Entry price" value={`${lamportsToSol(entryPriceLamports(config))} SOL`} accent="green" />
             <Stat label="Difficulty" value={`${config.baseDifficulty} bits`} />
             <Stat label="Streak" value={`+${config.streak}`} />
             <Stat label="Target" value={`${config.baseDifficulty + config.streak} bits`} />
@@ -63,9 +69,40 @@ export default function Dashboard() {
             />
           </div>
 
+          <NextPrice config={config} />
           <EpochProgress config={config} />
         </>
       )}
+    </div>
+  );
+}
+
+function NextPrice({ config }: { config: ConfigAccount }) {
+  const current = entryPriceLamports(config);
+  const next = nextEntryPriceLamports(config);
+  const remaining = epochStartSupply(config.epoch + 1) - config.supply;
+  const direction = next > current ? "up" : next < current ? "down" : "flat";
+
+  return (
+    <div className="bar-track px-3 py-2 flex items-center justify-between gap-3 flex-wrap text-sm">
+      <span className="label">
+        price at epoch {config.epoch + 1} ({remaining.toString()} mint{remaining === 1n ? "" : "s"} away)
+      </span>
+      <span className="flex items-center gap-2">
+        <span className="text-[var(--dim)]">{lamportsToSol(current)} SOL</span>
+        <span
+          className={
+            direction === "up"
+              ? "text-[var(--green)]"
+              : direction === "down"
+                ? "text-red-400"
+                : "text-[var(--dim)]"
+          }
+        >
+          {direction === "up" ? "↑" : direction === "down" ? "↓" : "→"}
+        </span>
+        <span className="font-bold">{lamportsToSol(next)} SOL</span>
+      </span>
     </div>
   );
 }
@@ -92,11 +129,12 @@ function EpochProgress({ config }: { config: ConfigAccount }) {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, accent }: { label: string; value: string; accent?: "green" | "cyan" }) {
+  const color = accent === "green" ? "text-[var(--green)]" : accent === "cyan" ? "text-[var(--cyan)]" : "";
   return (
     <div>
       <div className="label">{label}</div>
-      <div className="mt-0.5">{value}</div>
+      <div className={`mt-0.5 ${color}`}>{value}</div>
     </div>
   );
 }

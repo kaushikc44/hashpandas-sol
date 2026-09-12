@@ -74,10 +74,28 @@ export async function fetchConfig(connection: Connection): Promise<ConfigAccount
   };
 }
 
-/** entry_price(epoch) mirrored client-side for display, matching
+/** epoch_start_supply(e) = 8 * (2^e - 1), mirrored from economics.rs. */
+export function epochStartSupply(epoch: number): bigint {
+  return 8n * ((1n << BigInt(epoch)) - 1n);
+}
+
+/** entry_price(epoch), mirrored client-side for display, matching
  * economics.rs::entry_price exactly (epoch 0 flat, else start_supply*step). */
+export function priceAtEpoch(config: ConfigAccount, epoch: number): bigint {
+  if (epoch === 0) return config.epoch0FlatLamports;
+  return epochStartSupply(epoch) * config.stepLamports;
+}
+
 export function entryPriceLamports(config: ConfigAccount): bigint {
-  if (config.epoch === 0) return config.epoch0FlatLamports;
-  const startSupply = 8n * ((1n << BigInt(config.epoch)) - 1n);
-  return startSupply * config.stepLamports;
+  return priceAtEpoch(config, config.epoch);
+}
+
+/** What the price becomes the moment the current epoch closes. Not always
+ * higher than the current price across the epoch-0 boundary specifically --
+ * epoch0_flat_lamports is set independently (it has to cover Solana rent
+ * costs with nobody yet to pay rent to), so it can start above or below
+ * where the epoch-1 formula price lands. From epoch 1 onward it's strictly
+ * increasing, since epoch_start_supply always is. */
+export function nextEntryPriceLamports(config: ConfigAccount): bigint {
+  return priceAtEpoch(config, config.epoch + 1);
 }

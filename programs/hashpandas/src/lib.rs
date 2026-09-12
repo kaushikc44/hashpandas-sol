@@ -37,4 +37,11 @@ pub mod hashpandas {
     ) -> Result<()> {
         instructions::crank::handle_crank_buyback(ctx, args)
     }
+
+    pub fn update_collection_metadata(
+        ctx: Context<UpdateCollectionMetadata>,
+        args: UpdateCollectionMetadataArgs,
+    ) -> Result<()> {
+        instructions::update_collection::handle_update_collection_metadata(ctx, args)
+    }
 }
