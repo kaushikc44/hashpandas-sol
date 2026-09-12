@@ -3,6 +3,7 @@ import Dashboard from "@/components/Dashboard";
 import MineMint from "@/components/MineMint";
 import LatestMints from "@/components/LatestMints";
 import PandaGallery from "@/components/PandaGallery";
+import DonateBar from "@/components/DonateBar";
 
 export default function Home() {
   return (
@@ -26,6 +27,8 @@ export default function Home() {
         </div>
 
         <LatestMints />
+
+        <DonateBar />
       </main>
 
       <footer className="hr-dashed mt-auto px-4 sm:px-6 py-6 text-xs text-[var(--dim)] flex flex-wrap gap-6 justify-between">
